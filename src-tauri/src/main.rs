@@ -7,13 +7,13 @@ use tauri::Manager;
 use serde::{Serialize, Deserialize};
 
 #[tauri::command]
-fn my_command_sync() -> u32 {
-  1
+fn command_sync() -> String {
+  "command_sync invoked".to_string()
 }
 
 #[tauri::command]
-async fn my_command_async() -> u32 {
-  10
+async fn command_async() -> String {
+  "command_async invoked".to_string()
 }
 
 // the payload type must implement `Serialize`.
@@ -25,20 +25,17 @@ struct Payload {
 
 fn main() {
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![my_command_sync, my_command_async])
+    .invoke_handler(tauri::generate_handler![command_sync, command_async])
     .setup(|app| {
-      // listen to the `event-name` (emitted on any window)
-      let handle = app.handle();
-      let handle2 = app.handle();
+      let handle_rx = app.handle();
+      let handle_tx = app.handle();
 
-      let id = handle.listen_global("click_bar", move |event| {
+      let id = handle_rx.listen_global("js2rust_message", move |event| {
         let payload = event.payload().map(|str| serde_json::from_str::<Payload>(str));
 
         if let Some(Ok(payload)) = payload {
-          println!("got event-name with payload {:?}", payload);
-
-          // emit the `event-name` event to all webview windows on the frontend
-          handle2.emit_all("click_foo", Payload { message: "Tauri is awesome!".into() }).unwrap();
+          println!("got js2rust_message {:?}", payload);
+          handle_tx.emit_all("rust2js_message", Payload { message: "Sending message from rust".into() }).unwrap();
         } else {
           println!("some error {:?}", payload);
         }
@@ -46,10 +43,6 @@ fn main() {
       // unlisten to the event using the `id` returned on the `listen_global` function
       // an `once_global` API is also exposed on the `App` struct
       // app.unlisten(id);
-
-      
-
-
       Ok(())
     })
     .run(tauri::generate_context!())

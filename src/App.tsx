@@ -6,23 +6,26 @@ import './App.css'
 import { invoke } from '@tauri-apps/api/tauri'
 import { emit, listen } from '@tauri-apps/api/event'
 
-function onClick() {
-  console.log("clicked");
-  invoke('my_command_sync').then((message) => console.log(message))
-  invoke('my_command_async').then((message) => console.log(message))
+function invokeSyncCommand() {
+  invoke('command_sync').then((message) => console.log(message))
+}
 
+function invokeAsyncCommand() {
+  invoke('command_async').then((message) => console.log(message))
+}
+
+function emitMessages() {
   const payload = {
-    message: "foobargbaz"
+    message: "Sending message from js"
   }
-  emit('click_bar', JSON.stringify(payload))
+  emit('js2rust_message', JSON.stringify(payload))
 }
 
 function App() {
   useEffect(() => {
     const f = async () => {
-      const unlisten = await listen('click_foo', event => {
-        console.log('event click was called');
-        console.log(event);
+      const unlisten = await listen('rust2js_message', event => {
+        console.log(`got ${event.event} ${JSON.stringify(event.payload)}`);
       })
       return unlisten
     }
@@ -53,7 +56,9 @@ function App() {
         >
           Learn React
         </a>
-        <button onClick={onClick}>click</button>
+        <button onClick={invokeSyncCommand}>Invoke Sync Command</button>
+        <button onClick={invokeAsyncCommand}>Invoke Async Command</button>
+        <button onClick={emitMessages}>Emit Messages</button>
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
